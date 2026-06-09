@@ -1,0 +1,31 @@
+name: 'Terraform basic CI checks'
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: Terraform fmt and Validate 
+    runs-on: ubuntu-latest
+
+    defaults: 
+      run: 
+       working-directory: terraform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init without backend
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
