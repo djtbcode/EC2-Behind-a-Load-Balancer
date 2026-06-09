@@ -32,7 +32,7 @@ resource "aws_security_group" "web_sg" {
     security_groups = [aws_security_group.alb_sg.id]
   }
 
-  # SSH capability.
+  # Local SSH capability.
   # Example: ["203.0.113.10/32"]
   ingress {
     description = "Allow SSH from my IP"
@@ -56,7 +56,73 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-resource "aws_instance" "web" {
+# Adding final build, ALB -> Target group -> autoscaling group
+# Autoscaling group ec2 instance template
+resource "aws_launch_template" "web" {
+  name_prefix   = "ec2-lb-lab-web-"
+  image_id      = data.aws_ami.amazon_linux.id
+  instance_type = "t3.micro"
+
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+
+  user_data = base64encode(<<-EOF
+              #!/bin/bash
+              dnf update -y
+              dnf install -y nginx
+              systemctl enable nginx
+              systemctl start nginx
+              echo "EC2 instance running behind an Application Load Balancer" > /usr/share/nginx/html/index.html
+              echo "OK" > /usr/share/nginx/html/health
+              EOF
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Name        = "ec2-lb-lab-web"
+      Project     = "EC2-Behind-a-Load-Balancer"
+      Environment = "lab"
+    }
+  }
+}
+
+# Autoscaling config - intentionally limited in scope for cost protections
+resource "aws_autoscaling_group" "web" {
+  name                = "ec2-lb-lab-asg"
+  min_size            = 1
+  max_size            = 2
+  desired_capacity    = 1
+  vpc_zone_identifier = data.aws_subnets.default.ids
+  target_group_arns   = [aws_lb_target_group.web_tg.arn]
+  health_check_type   = "ELB"
+
+  launch_template {
+    id      = aws_launch_template.web.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "ec2-lb-lab-web"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Project"
+    value               = "EC2-Behind-a-Load-Balancer"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Environment"
+    value               = "lab"
+    propagate_at_launch = true
+  }
+}
+
+# Testing single instance, removed from final build.
+/*resource "aws_instance" "web" {
   ami                         = data.aws_ami.amazon_linux.id
   instance_type               = "t3.micro"
   subnet_id                   = data.aws_subnets.default.ids[0]
@@ -77,7 +143,7 @@ resource "aws_instance" "web" {
     Name    = "ec2-lb-lab-web"
     Project = "EC2-Behind-a-Load-Balancer"
   }
-}
+}*/
 
 resource "aws_security_group" "alb_sg" {
   name        = "ec2-lb-lab-alb-sg"
@@ -146,11 +212,12 @@ resource "aws_lb_target_group" "web_tg" {
   }
 }
 
+/*Old testing config to attach single instance to targetting group.
 resource "aws_lb_target_group_attachment" "web" {
   target_group_arn = aws_lb_target_group.web_tg.arn
   target_id        = aws_instance.web.id
   port             = 80
-}
+}*/
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app_alb.arn
