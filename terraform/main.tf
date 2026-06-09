@@ -25,14 +25,14 @@ resource "aws_security_group" "web_sg" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "Allow HTTP from internet for initial test"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Allow HTTP from only ALB"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
-  # Replace this with your own public IP if you want SSH.
+  # SSH capability.
   # Example: ["203.0.113.10/32"]
   ingress {
     description = "Allow SSH from my IP"
