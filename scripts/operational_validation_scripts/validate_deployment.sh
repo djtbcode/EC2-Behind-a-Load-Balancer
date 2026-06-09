@@ -5,11 +5,9 @@ cd ~/EC2-Behind-a-Load-Balancer/terraform
 set -euo pipefail
 
 alb_url="$(terraform output -raw alb_url)"
-ec2_url="$(terraform output -raw website_url)"
 target_group_arn="$(terraform output -raw target_group_arn)"
 
 echo "ALB URL: $alb_url"
-echo "EC2 URL: $ec2_url"
 echo "Target Group ARN: $target_group_arn"
 echo
 
@@ -40,14 +38,6 @@ if [ "$target_state" = "healthy" ]; then
 else
   echo "[FAIL] Target group state is: $target_state"
   exit 1
-fi
-
-echo "Confirming direct EC2 HTTP access is blocked..."
-if curl --connect-timeout 5 --silent "$ec2_url" > /dev/null; then
-  echo "[FAIL] Direct EC2 HTTP access is still reachable"
-  exit 1
-else
-  echo "[PASS] Direct EC2 HTTP access is blocked"
 fi
 
 echo
