@@ -1,5 +1,6 @@
 # EC2-Behind-a-Load-Balancer
 
+This version uses the default VPC/subnets to focus on ALB, security groups, target groups, Auto Scaling Group behavior, and Terraform workflow. A future improvement would be replacing this with a custom VPC and explicitly defined public/private subnets.
 ## Deployment validation bash script
 Added a script to automate the validation of the deployment via aws & terraform:
 
