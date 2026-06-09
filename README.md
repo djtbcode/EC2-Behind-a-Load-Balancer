@@ -2,6 +2,7 @@
 
 ## Deployment validation bash script
 Added a script to automate the validation of the deployment via aws & terraform:
+
 Example output:
 ```
 ALB URL: http://ec2-lb-lab-alb-132526376.eu-west-2.elb.amazonaws.com
